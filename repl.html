@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>REPL</title>
+
+    <link rel="stylesheet" href="lib/codemirror.css">
+    <!-- <link rel="stylesheet" href="addon/lint/lint.css"> -->
+
+    <style>
+      .CodeMirror { border: 1px solid #eee; height: auto; }
+    </style>
+
+    <script src="lib/codemirror.js"></script>
+    <script src="mode/javascript/javascript.js"></script>
+
+    <script src="addon/edit/matchbrackets.js"></script>
+    <script src="addon/edit/closebrackets.js"></script>
+
+    <!-- <script src="addon/lint/jshint.js"></script> -->
+    <!-- <script src="addon/lint/lint.js"></script> -->
+    <!-- <script src="addon/lint/javascript-lint.js"></script> -->
+
+    <script src="repl.js"></script>
+  </head>
+  <body>
+    <p>The evaluation marker is "//:".  Refresh all markers by
+    pressing Ctrl+Enter.</p>
+  </body>
+</html>
