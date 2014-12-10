@@ -19,11 +19,11 @@
     }
   }
 
-  function evalCode(__code) {
+  function evalCode(__data) {
     var __result;
 
     try {
-      __result = (function(){return eval(__code);}());
+      __result = (function(){return eval(__data.code);}());
     } catch (e) {
       __result = e.toString();
     }
@@ -36,13 +36,14 @@
     // shouldn't go over the current line
     __result = __result.replace(/\n/g, ' ');
 
-    postMessage(__result);
+    postMessage({
+      mid: __data.mid,
+      change: __result,
+    });
   }
 
   self.onmessage = function(event) {
-    postMessage('!!started');
     evalCode(event.data);
-    self.close();
   };
 
 }());
