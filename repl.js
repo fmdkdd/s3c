@@ -19,6 +19,7 @@
       //    lint: true,
       matchBrackets: true,
       autoCloseBrackets: true,
+      styleActiveLine: true,
       extraKeys: {
         "Ctrl-Enter": function() {
           reval(editor);
