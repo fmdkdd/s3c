@@ -1,4 +1,5 @@
 /* eslint-env browser */
+/* global CodeMirror */
 
 (function(){
 
@@ -22,6 +23,7 @@
         "Ctrl-Enter": function() {
           reval(editor);
         },
+        "Ctrl-/": "toggleComment",
       },
     });
 
