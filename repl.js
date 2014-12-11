@@ -25,6 +25,7 @@
           reval(editor);
         },
         "Ctrl-/": "toggleComment",
+        Tab: "insertSoftTab", // spaces instead of \t
       },
     });
 
