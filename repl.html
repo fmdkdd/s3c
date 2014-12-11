@@ -5,10 +5,14 @@
     <title>REPL</title>
 
     <link rel="stylesheet" href="lib/codemirror.css">
-    <!-- <link rel="stylesheet" href="addon/lint/lint.css"> -->
+    <link rel="stylesheet" href="addon/lint/lint.css">
 
     <style>
       .CodeMirror { border: 1px solid #eee; height: auto; }
+      .CodeMirror-lint-mark-error {
+      background-image:
+      url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9sJDw4cOCW1/KIAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAAHElEQVQI12NggIL/DAz/GdA5/xkY/qPKMDAwAADLZwf5rvm+LQAAAABJRU5ErkJggg==");
+      }
     </style>
 
     <script src="lib/codemirror.js"></script>
@@ -19,9 +23,9 @@
     <script src="addon/comment/comment.js"></script>
     <script src="addon/selection/active-line.js"></script>
 
-    <!-- <script src="addon/lint/jshint.js"></script> -->
-    <!-- <script src="addon/lint/lint.js"></script> -->
-    <!-- <script src="addon/lint/javascript-lint.js"></script> -->
+    <script src="addon/lint/eslint.js"></script>
+    <script src="addon/lint/javascript-lint.js"></script>
+    <script src="addon/lint/lint.js"></script>
 
     <script src="repl.js"></script>
   </head>
