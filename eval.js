@@ -19,11 +19,11 @@
     }
   }
 
-  function evalCode(__data) {
+  function evalCode(__code) {
     var __result;
 
     try {
-      __result = (function(){return eval(__data.code);}());
+      __result = (function(){return eval(__code);}());
     } catch (e) {
       __result = e.toString();
     }
@@ -36,14 +36,14 @@
     // shouldn't go over the current line
     __result = __result.replace(/\n/g, ' ');
 
-    postMessage({
-      mid: __data.mid,
-      change: __result,
-    });
+    return __result;
   }
 
   self.onmessage = function(event) {
-    evalCode(event.data);
+    postMessage({
+      id: event.data.id,
+      result: evalCode(event.data.code),
+    });
   };
 
 }());

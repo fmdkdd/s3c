@@ -27,8 +27,7 @@
 
     // Backup text when leaving page.  Restore from localStorage.
     var text = localStorage.getItem('backup');
-    if (text)
-      editor.setValue(text);
+    if (text) editor.setValue(text);
 
     window.addEventListener('beforeunload', function() {
       localStorage.setItem('backup', editor.getValue());
@@ -36,43 +35,39 @@
   }
 
   var worker = null;
-  var markeds = [];
+  var backlog = [];
 
-  function write(message, data) {
-    editor.replaceRange(data, message.from, message.to);
+  function write(marker, data) {
+    editor.replaceRange(data, marker.from, marker.to);
   }
 
   function killWorker(eachMark) {
-    return function() {
-      worker.terminate();
-      worker = null;
+    worker.terminate();
+    worker = null;
 
-      markeds.forEach(function(m) {
-        clearTimeout(m.kill);
-        eachMark(m);
-      });
-      markeds = [];
-    };
+    backlog.forEach(function(m) {
+      clearTimeout(m.timeout);
+      if (eachMark) eachMark(m);
+    });
+    backlog = [];
   }
 
   function reval(editor) {
-    // Kill existing worker
-    if (worker) {
-      killWorker(function(){})();
-    }
+    // We kill the existing worker because we need a fresh
+    // eval environment.
+    if (worker)
+      killWorker();
 
     // Create new worker
-    if (worker == null) {
-      worker = new Worker('eval.js');
+    worker = new Worker('eval.js');
+    worker.onmessage = function(event) {
+      var m = backlog[event.data.id];
+      clearTimeout(m.timeout);
+      write(m, event.data.result);
+      delete backlog[event.data.id];
+    };
 
-      worker.onmessage = function(event) {
-        var m = markeds[event.data.mid];
-        clearTimeout(m.kill);
-        write(m, event.data.change);
-        delete markeds[event.data.mid];
-      };
-    }
-
+    // Eval each block up to the delimiter
     var text = editor.getValue();
     var lines = text.split('\n');
     var code = '';
@@ -80,19 +75,21 @@
     lines.forEach(function(l, i) {
       code += l + '\n';
 
-      var ev = l.indexOf('//:');
+      var ev = l.indexOf(delimiter);
       if (ev === -1) return;
 
-      var mid = markeds.length;
-      markeds[mid] = {
+      var id = backlog.length;
+      backlog[id] = {
         code: code,
         from: {line: i, ch: ev + delimiter.length},
         to: {line: i, ch: l.length},
-        kill: setTimeout(killWorker(function(m) { write(m, ' timeout'); }), timeout),
+        timeout: setTimeout(function() {
+          killWorker(function(m) { write(m, ' ⌛'); });
+        }, timeout),
       };
 
       worker.postMessage({
-        mid: mid,
+        id: id,
         code: code,
       });
     });
