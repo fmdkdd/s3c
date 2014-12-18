@@ -1,49 +1,74 @@
 /* eslint-env browser */
 
 (function() {
-  function __printFunction(f) {
-    return 'function ' + f.name;
-  }
+  function __evalCode(code) {
+    var result = (function(__code){
+      try { return (function(){return eval(__code);}()); }
+      catch (e) { return e; }
+    }(code));
 
-  function __prettyPrint(result) {
-    if (result == null) return result;
-    else if (typeof result === 'function')
-      return __printFunction(result);
-    else {
-      try {
-        return JSON.stringify(result);
-      } catch (e) {
-        // Cyclic structure
-        return 'cyclic object';
+    result = (function prettyValue(v) {
+      if (v == null)
+        return v;
+
+      else if (typeof v === 'function')
+        return 'function' + (v.name ? ' ' + v.name : '');
+
+      else if (typeof v === 'string'
+               || typeof v === 'object' && v instanceof String)
+        return '"' + v + '"';
+
+      else if (Array.isArray(v))
+        return '[' + v.map(prettyValue).join(',') + ']';
+
+      else if (typeof v === 'object')
+        return prettyObject(v);
+
+      return v;
+
+      function prettyObject(o) {
+        if (o instanceof Error ||
+            o instanceof Date ||
+            o instanceof Number ||
+            o instanceof Boolean ||
+            o instanceof RegExp)
+          return o;
+
+        var cyclic = (function(){
+          try {JSON.stringify(o); return false;}
+          catch (e) { return true; }
+        }());
+
+        var className = Object.prototype.toString
+          .call(o)
+          .split(' ')[1]
+          .slice(0, -1);
+
+        if (cyclic)
+          return className + ' {cyclic}';
+
+        var ks = Object.keys(o);
+
+        return className + ' {' + ks.map(function(k) {
+          return k + ':' + prettyValue(o[k]);
+        }).join(',') + '}';
       }
-    }
-  }
-
-  function evalCode(__code) {
-    var __result;
-
-    try {
-      __result = (function(){return eval(__code);}());
-    } catch (e) {
-      __result = e.toString();
-    }
-
-    __result = __prettyPrint(__result);
+    }(result));
 
     // pad
-    __result = ' ' + __result;
+    result = ' ' + result;
 
     // shouldn't go over the current line
-    __result = __result.replace(/\n/g, ' ');
+    result = result.replace(/\n|\r/g, ' ');
 
-    return __result;
+    return result;
   }
 
-  self.onmessage = function(event) {
+  self.addEventListener('message', function(event) {
     postMessage({
       id: event.data.id,
-      result: evalCode(event.data.code),
+      result: __evalCode(event.data.code),
     });
-  };
+  });
 
 }());
