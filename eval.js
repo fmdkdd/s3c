@@ -1,4 +1,5 @@
 /* eslint-env browser */
+/* eslint no-underscore-dangle: 0, no-eval: 0 */
 
 (function() {
   function __evalCode(code) {
