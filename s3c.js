@@ -81,6 +81,11 @@
 
       var ev = l.indexOf(delimiter);
       if (ev === -1) return;
+      // XXX: We should not evaluate delimiters in a comment, but that
+      // would require actually parsing the code.  As a temporary
+      // workaround, we skip lines beginning with '//' (but not
+      // '//:').
+      if (l.indexOf('//') === 0 && ev > 0) return;
 
       var id = backlog.length;
       backlog[id] = {
