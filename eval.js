@@ -2,36 +2,50 @@
 /* eslint no-underscore-dangle: 0, no-eval: 0 */
 
 (function() {
-  function __evalCode(__code) {
-    // We run the code inside eval, rather than Function because eval returns
-    // the value of the last expression, and not Function, so it behaves more
-    // like a REPL.  Using Function we would need to add a `return` statement
-    // to the last expression, but that would mean parsing and modifying the
-    // code, which we don't do here.
-    //
-    // Because eval runs its argument in the current scope, we create a fresh
-    // scope using an IIFE.  Unfortunately, the code will have the current
-    // bindings in its scope, so we override them to `undefined` using the `var`
-    // statement.  This is not the same as the binding being absent, as these
-    // names will not trigger "TypeError: undefined" for instance, so we prefix
-    // them with dunder to avoid surprises in client code.
-    //
-    // `self` is an alias to `this`, which is the global context of the web
-    // worker.  We want the code to be able to access global objects like String,
-    // Function, JSON, etc.  But `self` is a commonly-used word that can raise
-    // unexpected behavior, so we hide it as well.
-    //
-    // The final trick is to pass the code via the arguments special keyword,
-    // which prevents naming the naming the argument that we would not have been
-    // able to hide.  But we can pretend the `arguments` binding does not exist
-    // by adding it to the empty `var` statement.
-    var __result = (function(){
-      var self, __result, __evalCode, __code, arguments;
-      try { return eval.call(null, arguments[0]); }
-      catch (e) { return e; }
-    }(__code));
+  // Save these built-ins functions to prevent evaluated code from overriding
+  // them.
+  var String = this.String;
+  var Error = this.Error;
+  var Date = this.Date;
+  var Number = this.Number;
+  var Boolean = this.Boolean;
+  var RegExp = this.RegExp;
+  var m2f = Function.prototype.bind.bind(Function.prototype.call);
+  var _eval = eval;
+  var isArray = Array.isArray;
+  var keys = Object.keys;
+  var stringify = JSON.stringify;
+  var map = m2f(Array.prototype.map);
+  var join = m2f(Array.prototype.join);
+  var replace = m2f(String.prototype.replace);
+  var split = m2f(String.prototype.split);
+  var slice = m2f(String.prototype.slice);
+  var objectToString = m2f(Object.prototype.toString);
+  var postMessage = this.postMessage;
 
-    __result = (function prettyValue(v) {
+
+  function evalCode(code) {
+    // We run the code inside eval, rather than Function because eval returns
+    // the value of the last expression, and not Function, so eval behaves more
+    // like a REPL.  Using Function we would need to add a `return` statement to
+    // the last expression, but that would mean parsing and modifying the code,
+    // which we don't do here.
+    //
+    // The call to eval is indirect, and is thus executed in the global
+    // environment of the web worker (so it cannot access the variables inside
+    // this function).
+    //
+    // However, in client code, `self` is an alias to `this`, which is the
+    // global context of the web worker.
+    //
+    // Client code should not be able to trigger an error in the worker, since
+    // only refer to saved versions of global objects.
+    var result = (function(){
+      try { return _eval(code); }
+      catch (e) { return e; }
+    }());
+
+    result = (function prettyValue(v) {
       if (v == null)
         return v;
 
@@ -42,8 +56,8 @@
                || typeof v === 'object' && v instanceof String)
         return '"' + v + '"';
 
-      else if (Array.isArray(v))
-        return '[' + v.map(prettyValue).join(',') + ']';
+      else if (isArray(v))
+        return '[' + join(map(v, prettyValue), ',') + ']';
 
       else if (typeof v === 'object')
         return prettyObject(v);
@@ -59,39 +73,36 @@
           return o;
 
         var cyclic = (function(){
-          try {JSON.stringify(o); return false;}
+          try {stringify(o); return false;}
           catch (e) { return true; }
         }());
 
-        var className = Object.prototype.toString
-          .call(o)
-          .split(' ')[1]
-          .slice(0, -1);
+        var className = slice(split(objectToString(o), ' ')[1], 0, -1);
 
         if (cyclic)
           return className + ' {cyclic}';
 
-        var ks = Object.keys(o);
+        var ks = keys(o);
 
-        return className + ' {' + ks.map(function(k) {
+        return className + ' {' + join(map(ks, function(k) {
           return k + ':' + prettyValue(o[k]);
-        }).join(',') + '}';
+        }), ',') + '}';
       }
-    }(__result));
+    }(result));
 
     // pad
-    __result = ' ' + __result;
+    result = ' ' + result;
 
     // shouldn't go over the current line
-    __result = __result.replace(/\n|\r/g, ' ');
+    result = replace(result, /\n|\r/g, ' ');
 
-    return __result;
+    return result;
   }
 
-  self.addEventListener('message', function(event) {
-    self.postMessage({
+  this.addEventListener('message', function(event) {
+    postMessage({
       id: event.data.id,
-      result: __evalCode(event.data.code)
+      result: evalCode(event.data.code)
     });
   });
 
