@@ -5,7 +5,7 @@ students, useful for all.  [Try it](http://fmdkdd.github.io/s3c).
 
 ## Features
 
-- Inline code evaluation in a web worker
+- Inline code evaluation via a web worker
 - Linting via [ESLint](http://eslint.org/)
 - Content backup in local storage
 - Editing features via [CodeMirror](http://codemirror.net/)
@@ -14,10 +14,14 @@ students, useful for all.  [Try it](http://fmdkdd.github.io/s3c).
 
 This editor is mainly intended for writing and evaluating small
 snippets of JavaScript code.  Do not rely solely on local storage for
-safekeeping, as the size limit varies from browser to browser.  Code
-evaluation uses `eval` and is only slightly sandboxed as it runs in a
-web worker (so you cannot interfere with the editor); you can still
-interfere with the evaluation by, say, redefining `JSON.stringify`.
+safekeeping, as the size limit varies from browser to browser.
+
+Code evaluation uses `eval`, but is sandboxed in a web worker (so you cannot
+interfere with the editor by redefining, say, `Object.prototype`).  The
+evaluation timeouts after 1 second, outputting a ⌛.
+
+Be aware that in a web worker, the identifier `self` is bound to the global
+object, but `window` and `document` are undefined.
 
 ## Acknowledgments
 
