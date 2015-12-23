@@ -109,6 +109,8 @@
         id: id,
         code: code,
       });
+
+      code = '';
     });
   }
 
