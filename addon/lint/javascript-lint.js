@@ -27,6 +27,10 @@
       "jasmine": false
     },
 
+    "globals": {
+      "console": true
+    },
+
     "rules": {
       "no-alert": 2,
       "no-array-constructor": 2,
@@ -35,7 +39,7 @@
       "no-catch-shadow": 2,
       "no-comma-dangle": 0,
       "no-cond-assign": [2, "except-parens"],
-      "no-console": 1,
+      "no-console": 0,
       "no-constant-condition": 2,
       "no-control-regex": 2,
       "no-debugger": 2,
@@ -127,7 +131,7 @@
       "complexity": [0, 11],
       "consistent-return": 2,
       "consistent-this": [0, "that"],
-      "curly": [1, "multi"],
+      "curly": 0,
       "default-case": 1,
       "dot-notation": 2,
       "eol-last": 0,
