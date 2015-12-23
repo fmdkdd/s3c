@@ -41,8 +41,16 @@
   var worker = null;
   var backlog = [];
 
-  function write(marker, data) {
+  function write(marker, data, isError) {
     editor.replaceRange(data, marker.from, marker.to);
+    if (isError) {
+      // Line has changed, so the `to` marker is obsolete.
+      var to = {
+        line: marker.from.line,
+        ch: marker.from.ch + data.length
+      };
+      editor.markText(marker.from, to, {className: 's3c-runtime-error'});
+    }
   }
 
   function killWorker(eachMark) {
@@ -67,7 +75,7 @@
     worker.onmessage = function(event) {
       var m = backlog[event.data.id];
       clearTimeout(m.timeout);
-      write(m, event.data.result);
+      write(m, event.data.result, event.data.isError);
       delete backlog[event.data.id];
     };
 

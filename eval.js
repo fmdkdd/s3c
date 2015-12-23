@@ -40,9 +40,10 @@
     //
     // Client code should not be able to trigger an error in the worker, since
     // only refer to saved versions of global objects.
+    var isError = false;
     var result = (function(){
       try { return _eval(code); }
-      catch (e) { return e; }
+      catch (e) { isError = true; return e; }
     }());
 
     result = (function prettyValue(v) {
@@ -96,13 +97,16 @@
     // shouldn't go over the current line
     result = replace(result, /\n|\r/g, ' ');
 
-    return result;
+    return {result: result,
+            isError: isError};
   }
 
   this.addEventListener('message', function(event) {
+    var r = evalCode(event.data.code);
     postMessage({
       id: event.data.id,
-      result: evalCode(event.data.code)
+      result: r.result,
+      isError: r.isError,
     });
   });
 
