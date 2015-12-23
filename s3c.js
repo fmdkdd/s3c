@@ -105,6 +105,10 @@
         }, timeout),
       };
 
+      // Erase current marker value for visual feedback that evaluation has
+      // started.
+      write(backlog[id], '');
+
       worker.postMessage({
         id: id,
         code: code,
