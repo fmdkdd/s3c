@@ -42,7 +42,10 @@
   var backlog = [];
 
   function write(marker, data, isError) {
-    editor.replaceRange(data, marker.from, marker.to);
+    // +reval coalesces all writes made by this function into a single item in
+    // CodeMirror's undo history.  So undo after an evaluation will revert /all/
+    // markers, not just one marker at a time.
+    editor.replaceRange(data, marker.from, marker.to, '+reval');
     if (isError) {
       // Line has changed, so the `to` marker is obsolete.
       var to = {
