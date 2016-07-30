@@ -24,6 +24,25 @@
   var postMessage = this.postMessage;
 
 
+  var isError = false;
+  var errorMsg;
+
+  function collect(value, locations) {
+    locations.forEach(function(l) {
+      postMessage({
+        from: l.from,
+        to: l.to,
+        value: ' ' + value.toString(),
+        isError: isError,
+        errorMsg: errorMsg,
+        // isError: r.isError,
+      });
+    })
+  }
+
+  this.M = collect;
+
+
   function evalCode(code) {
     // We run the code inside eval, rather than Function because eval returns
     // the value of the last expression, and not Function, so eval behaves more
@@ -39,8 +58,8 @@
     // global context of the web worker.
     //
     // Client code should not be able to trigger an error in the worker, since
-    // only refer to saved versions of global objects.
-    var isError = false;
+    // we only refer to saved versions of global objects.
+    // var isError = false;
     var result = (function(){
       try { return _eval(code); }
       catch (e) { isError = true; return e; }
@@ -97,17 +116,19 @@
     // shouldn't go over the current line
     result = replace(result, /\n|\r/g, ' ');
 
+    errorMsg = result;
+
     return {result: result,
             isError: isError};
   }
 
   this.addEventListener('message', function(event) {
     var r = evalCode(event.data.code);
-    postMessage({
-      id: event.data.id,
-      result: r.result,
-      isError: r.isError,
-    });
+    // postMessage({
+    //   id: event.data.id,
+    //   result: r.result,
+    //   isError: r.isError,
+    // });
   });
 
 }());
