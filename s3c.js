@@ -121,7 +121,7 @@
       console.log(err)
     }
 
-    // We first have to associate all evaluation comments with their parent
+    // We first have to associate all evaluation comments with their nearest
     // expression statement.
     var expressionsToComments = new WeakMap();
 
@@ -136,16 +136,46 @@
         if (node.trailingComments) {
           var coms = node.trailingComments.filter(isEvaluationComment);
 
-          // If we have evaluation comments
+          // If any of these are evaluation comments
           if (coms.length > 0) {
 
             // Find the first expression statement
             var exp = first(root_trail, isExpressionStatement);
 
-            if (exp) {
-              expressionsToComments.set(exp, coms);
-            } else {
-              console.log('No parent expression statement!  What do I do?', coms);
+            // If there is no parent expression statement, we have a block with
+            // a trailing comment.  We go traverse it and bind to the last
+            // ExpressionStatement we find.  This is the legacy behavior of s3c.
+            if (!exp) {
+              estraverse.traverse(node, {
+                enter: function(node, parent) {
+                  if (isExpressionStatement(node)) {
+                    exp = node;
+                  }
+                }
+              });
+            }
+
+            // If we haven't found an expression statement this time...  Are you
+            // sure you are using this thing right?
+            if (!exp) {
+              console.error('No nearest expression statement found!'
+                            + '  Please report this error', coms);
+            }
+
+            else {
+              // If the expressions is already in the map, we want to add
+              // evaluation comments to it.
+              if (expressionsToComments.has(exp)) {
+                Array.prototype.push.apply(
+                  expressionsToComments.get(exp),
+                  coms
+                );
+              }
+
+              // Otherwise, just set
+              else {
+                expressionsToComments.set(exp, coms);
+              }
             }
           }
         }
