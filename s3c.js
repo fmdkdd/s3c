@@ -1,6 +1,25 @@
 /* eslint-env browser */
 /* global CodeMirror */
 
+// TODO: update ESLint to fix obsolete parser issues and hopefully weight less
+// than 671K.
+
+// TODO: Add LICENSE files for esprima/escodegen/estraverse
+
+// TODO: check if updating other dependencies breaks anything while I'm at it
+
+// TODO: use //! to wrap an expression in try/catch?
+
+// TODO: use //+ to collect multiple results to the same marker? (and just
+// separate results by spaces)
+
+// TODO: add usage examples on the bottom of the page
+
+// TODO: if there can only be one error or timeout, just put it next to the Run
+// button in a 'evaluation result' space
+
+// TODO: disable run if there is a parse error?
+
 (function(){
 
   document.addEventListener('DOMContentLoaded', init);
@@ -39,7 +58,7 @@
     });
 
     // Restore from localStorage.
-    // FIXME: local storage may be too limited.  Maybe use DB instead?
+    // TODO: local storage may be too limited.  Maybe use DB instead?
     var text = localStorage.getItem('backup');
     if (text) editor.setValue(text);
 
