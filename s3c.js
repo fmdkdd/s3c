@@ -109,19 +109,11 @@
 
     var text = editor.getValue();
 
-    // We associate every comment object from Esprima to an evaluation marker
-    // object with CodeMirror coordinates and housekeeping properties.
-    var commentsToMarkers = new WeakMap();
-
-    // To avoid treating the same comment object as two different evaluation
-    // markers, we keep track of the comments we have seen already.
-    var all_markers = [];
-
-    // Parse code to find evaluation markers
+    // Parse code to find evaluation markers.  Parsing will fail if there is a
+    // syntax error.  If there is an error, we catch it, skip evaluation and
+    // disable evaluation.
     var ast;
 
-    // Parsing will fail if there is a syntax error.  If there is an error, we
-    // catch it, skip evaluation and disable evaluation.
     try {
       ast = esprima.parse(text, {loc: true, attachComment: true});
     } catch (err) {
@@ -166,6 +158,15 @@
 
     // Now we must wrap all the expression statements that have associated
     // evaluation comments.
+
+    // We associate every comment object from Esprima to an evaluation marker
+    // object with CodeMirror coordinates and housekeeping properties.
+    var commentsToMarkers = new WeakMap();
+
+    // To avoid treating the same comment object as two different evaluation
+    // markers, we keep track of the comments we have seen already.
+    var all_markers = [];
+
     estraverse.replace(ast, {
       enter: function(node, parent) {
         if (expressionsToComments.has(node)) {
