@@ -7,7 +7,7 @@
 
   var delimiter = '//:';
 
-  function isEvaluationMarker(comment) {
+  function isEvaluationComment(comment) {
     return comment.type === 'Line' && comment.value[0] === ':';
   }
 
@@ -90,7 +90,12 @@
 
     var text = editor.getValue();
 
-    // To keep track of all markers
+    // We associate every comment object from Esprima to an evaluation marker
+    // object with CodeMirror coordinates and housekeeping properties.
+    var commentsToMarkers = new WeakMap();
+
+    // To avoid treating the same comment object as two different evaluation
+    // markers, we keep track of the comments we have seen already.
     var all_markers = [];
 
     // Parse code to find evaluation markers
@@ -105,36 +110,64 @@
       console.log(err)
     }
 
+    // We first have to associate all evaluation comments with their parent
+    // expression statement.
+    var expressionsToComments = new WeakMap();
+
+    // The Esprima AST has no parent links, so we keep track of the current trail
+    // to the root in this list.
+    var root_trail = [];
+
+    estraverse.traverse(ast, {
+      enter: function(node, parent) {
+        root_trail.unshift(node);
+
+        if (node.trailingComments) {
+          var coms = node.trailingComments.filter(isEvaluationComment);
+
+          // If we have evaluation comments
+          if (coms.length > 0) {
+
+            // Find the first expression statement
+            var exp = first(root_trail, isExpressionStatement);
+
+            if (exp) {
+              expressionsToComments.set(exp, coms);
+            } else {
+              console.log('No parent expression statement!  What do I do?', coms);
+            }
+          }
+        }
+      },
+
+      leave: function(node, parent) {
+        root_trail.shift();
+      }
+    });
+
+    // Now we must wrap all the expression statements that have associated
+    // evaluation comments.
     estraverse.replace(ast, {
       enter: function(node, parent) {
-        if (node.type === 'ExpressionStatement') {
+        if (expressionsToComments.has(node)) {
+          var comments = expressionsToComments.get(node);
 
-          // Collect all evaluation markers attached to this expression
-          // statement.
-          var markers = [];
+          // Now, for each comment.  If we have already seen this comment, then
+          // just return its id.  If not, we need to translate the comment
+          // line/column from Esprima to CodeMirror coordinates.  Then we save
+          // the evaluation marker object and return its id number for talking
+          // with the worker.
 
-          estraverse.traverse(node, {
-            enter: function collectMarkers(node, parent) {
-              if (node.trailingComments) {
-                var m = node.trailingComments.filter(isEvaluationMarker);
-                Array.prototype.push.apply(markers, m);
-              }
-            }
-          });
+          var comments_ids_nodes = [];
 
-          // If we have any marker
-          if (markers.length > 0) {
-            // We need to translate the markers line/column from Esprima to
-            // CodeMirror coordinates.  Then we save them and use their id
-            // number for talking with the worker.
-            var markers_ids = [];
+          comments.forEach(function buildMarkerAndGetId(c) {
 
-            markers.forEach(function saveMarkers(m) {
-              var start = m.loc.start;
-              var end = m.loc.end;
+            if (!commentsToMarkers.has(c)) {
+              var start = c.loc.start;
+              var end = c.loc.end;
 
               // Esprima counts lines from 1, CodeMirror from 0
-              var cm_loc = {
+              var marker = {
                 from: {
                   line: start.line - 1,
                   // Skip evaluation marker syntax
@@ -148,28 +181,29 @@
 
               // Save that one to write to erase the value of the evaluation
               // marker, for visual feedback the evaluation started.
-              all_markers.push(cm_loc);
+              commentsToMarkers.set(c, marker);
+              all_markers.push(marker);
+            }
 
-              // Collect the id of this marker as an AST node
-              markers_ids.push({
-                type: 'Literal',
-                value: all_markers.length - 1
-              });
+            // Collect the id of this marker as an AST node
+            comments_ids_nodes.push({
+              type: 'Literal',
+              value: all_markers.indexOf(commentsToMarkers.get(c))
             });
+          });
 
-            // Wrap the expression in a call to the logging function
-            return {
-              type: 'ExpressionStatement',
-              expression: {
-                type: 'CallExpression',
-                callee: { type: 'Identifier', name: logging_function_name },
-                arguments: [
-                  node.expression,
-                  { type: 'ArrayExpression', elements: markers_ids }
-                ]
-              }
-            };
-          }
+          // Wrap the expression in a call to the logging function
+          return {
+            type: 'ExpressionStatement',
+            expression: {
+              type: 'CallExpression',
+              callee: { type: 'Identifier', name: logging_function_name },
+              arguments: [
+                node.expression,
+                { type: 'ArrayExpression', elements: comments_ids_nodes }
+              ]
+            }
+          };
         }
       }
     });
@@ -236,6 +270,20 @@
       })
         .forEach(write_fn);
     }
+  }
+
+  // Return first value in the array that matches the predicate, or undefined.
+  function first(array, predicate) {
+    for (var i = 0; i < array.length; ++i) {
+      if (predicate(array[i]))
+        return array[i];
+    }
+
+    return undefined;
+  }
+
+  function isExpressionStatement(node) {
+    return node.type === 'ExpressionStatement';
   }
 
 }());
