@@ -30,10 +30,12 @@
       },
     });
 
-    // Backup text when leaving page.  Restore from localStorage.
+    // Restore from localStorage.
+    // FIXME: local storage may be too limited.  Maybe use DB instead?
     var text = localStorage.getItem('backup');
     if (text) editor.setValue(text);
 
+    // Backup text when leaving page.
     window.addEventListener('beforeunload', function() {
       localStorage.setItem('backup', editor.getValue());
     });
