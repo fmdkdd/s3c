@@ -71,8 +71,10 @@
     // CodeMirror's undo history.  So undo after an evaluation will revert /all/
     // markers, not just one marker at a time.
     editor.replaceRange(data, marker.from, marker.to, '+reval');
+
+    // Highlight errors in a different color
     if (isError) {
-      // Line has changed, so the `to` marker is obsolete.
+      // We just changed the line, so the `to` marker is obsolete.
       var to = {
         line: marker.from.line,
         ch: marker.from.ch + data.length
@@ -92,7 +94,16 @@
     var all_markers = [];
 
     // Parse code to find evaluation markers
-    var ast = esprima.parse(text, {loc: true, attachComment: true});
+    var ast;
+
+    // Parsing will fail if there is a syntax error.  If there is an error, we
+    // catch it, skip evaluation and disable evaluation.
+    try {
+      ast = esprima.parse(text, {loc: true, attachComment: true});
+    } catch (err) {
+      // TODO: handle parse errors
+      console.log(err)
+    }
 
     estraverse.replace(ast, {
       enter: function(node, parent) {
@@ -167,7 +178,35 @@
     worker = new Worker('eval.js');
     worker.onmessage = function onMessage(event) {
       var d = event.data;
-      write(all_markers[d.id], d.result, d.isError);
+
+      // When we get data for a marker
+      if (d.type === 'log') {
+
+        // Write it
+        write(all_markers[d.id], d.result);
+
+        // Mark that we did already receive a log for this marker.  If we
+        // timeout or have an error, we won't erase this marker's content.
+        all_markers[d.id].receivedLog = true;
+      }
+
+      // When the evaluation is done
+      else if (d.type === 'evaluation_done') {
+
+        // We don't need the worker anymore
+        maybeKillWorker();
+
+        // If there was an error, report it to the user
+        if (d.isError) {
+
+          all_markers.filter(function hasReceivedLog(m) {
+            return !m.receivedLog
+          })
+            .forEach(function reportError(m) {
+              write(m, d.errorMsg, true);
+            })
+        }
+      }
     };
 
     // Send code to worker for evaluation
@@ -177,6 +216,7 @@
     });
 
     // If it takes too long, kill it.
+    // TODO: report timeout to user
     workerTimeout = setTimeout(maybeKillWorker, timeout);
 
     // Meanwhile, erase all markers content for visual feedback that evaluation
