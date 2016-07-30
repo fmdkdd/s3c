@@ -9,9 +9,10 @@
   document.addEventListener('DOMContentLoaded', init);
 
   var editor;
+  var runButton;
 
   function init() {
-    editor = CodeMirror(document.body, {
+    editor = CodeMirror(document.getElementById('editor'), {
       autofocus: true,
       tabSize: 2,
       lineNumbers: true,
@@ -35,6 +36,12 @@
 
     window.addEventListener('beforeunload', function() {
       localStorage.setItem('backup', editor.getValue());
+    });
+
+    runButton = document.getElementById('button-run')
+
+    runButton.addEventListener('click', function() {
+      reval(editor);
     });
   }
 

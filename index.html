@@ -17,6 +17,21 @@
        color: white;
        background-color: red;
      }
+
+     #button-run {
+       background-color: #2ecc71;
+       color: white;
+       text-shadow: 0 1px 0 rgba(0,0,0,0.15);
+       font-size: 140%;
+       border: 1px solid #27ae60;
+       border-radius: 4px;
+       padding: 0.25em 0.5em;
+       cursor: pointer;
+     }
+
+     #button-run:hover {
+       background-color: #27ae60;
+     }
     </style>
 
     <script src="codemirror/lib/codemirror.js"></script>
@@ -38,7 +53,9 @@
     <script src="s3c.js"></script>
   </head>
   <body>
+    <div id="editor"></div>
     <p>The evaluation marker is "//:".  Refresh all markers by
       pressing Ctrl+Enter.</p>
+    <button id="button-run">Run</button>
   </body>
 </html>
