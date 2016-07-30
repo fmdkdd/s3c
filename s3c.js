@@ -18,7 +18,7 @@
 // TODO: if there can only be one error or timeout, just put it next to the Run
 // button in a 'evaluation result' space
 
-// TODO: disable run if there is a parse error?
+// TODO: disable run button if there is a parse error?
 
 (function(){
 
