@@ -23,25 +23,20 @@
   var objectToString = m2f(Object.prototype.toString);
   var postMessage = this.postMessage;
 
+  // var isError = false;
+  // var errorMsg;
 
-  var isError = false;
-  var errorMsg;
-
-  function collect(value, locations) {
-    locations.forEach(function(l) {
+  function collect(value, idArray) {
+    idArray.forEach(function(id) {
       postMessage({
-        from: l.from,
-        to: l.to,
-        value: ' ' + value.toString(),
-        isError: isError,
-        errorMsg: errorMsg,
+        id: id,
+        result: ' ' + value.toString(),
+        // isError: isError,
+        // errorMsg: errorMsg,
         // isError: r.isError,
       });
     })
   }
-
-  this.M = collect;
-
 
   function evalCode(code) {
     // We run the code inside eval, rather than Function because eval returns
@@ -59,7 +54,7 @@
     //
     // Client code should not be able to trigger an error in the worker, since
     // we only refer to saved versions of global objects.
-    // var isError = false;
+    var isError = false;
     var result = (function(){
       try { return _eval(code); }
       catch (e) { isError = true; return e; }
@@ -122,13 +117,9 @@
             isError: isError};
   }
 
-  this.addEventListener('message', function(event) {
-    var r = evalCode(event.data.code);
-    // postMessage({
-    //   id: event.data.id,
-    //   result: r.result,
-    //   isError: r.isError,
-    // });
+  this.addEventListener('message', function onMessage(event) {
+    self[event.data.loggingFunctionName] = collect;
+    evalCode(event.data.code);
   });
 
 }());

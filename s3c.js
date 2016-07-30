@@ -3,13 +3,23 @@
 
 (function(){
 
+  document.addEventListener('DOMContentLoaded', init);
+
   var delimiter = '//:';
+
+  function isEvaluationMarker(comment) {
+    return comment.type === 'Line' && comment.value[0] === ':';
+  }
+
+  // How long before canceling evaluation
   var timeout = 1000;
 
-  document.addEventListener('DOMContentLoaded', init);
+  var logging_function_name = '_$deadb33f'; // Random enough?
 
   var editor;
   var runButton;
+  var worker;
+  var workerTimeout;
 
   function init() {
     editor = CodeMirror(document.getElementById('editor'), {
@@ -22,9 +32,7 @@
       autoCloseBrackets: true,
       styleActiveLine: true,
       extraKeys: {
-        "Ctrl-Enter": function() {
-          reval(editor);
-        },
+        "Ctrl-Enter": doReval,
         "Ctrl-/": "toggleComment",
         Tab: "insertSoftTab", // spaces instead of \t
       },
@@ -36,25 +44,32 @@
     if (text) editor.setValue(text);
 
     // Backup text when leaving page.
-    window.addEventListener('beforeunload', function() {
+    window.addEventListener('beforeunload', function backupToLocalStorage() {
       localStorage.setItem('backup', editor.getValue());
     });
 
     runButton = document.getElementById('button-run')
+    runButton.addEventListener('click', doReval);
 
-    runButton.addEventListener('click', function() {
+    function doReval() {
       reval(editor);
-    });
+    }
   }
 
-  var worker = null;
-  var backlog = [];
+  function maybeKillWorker(eachMark) {
+    if (worker) {
+      worker.terminate();
+      worker = null;
+    }
+
+    // We don't need this timeout anymore
+    clearTimeout(workerTimeout);
+  }
 
   function write(marker, data, isError) {
     // +reval coalesces all writes made by this function into a single item in
     // CodeMirror's undo history.  So undo after an evaluation will revert /all/
     // markers, not just one marker at a time.
-    console.log(data, marker.from, marker.to)
     editor.replaceRange(data, marker.from, marker.to, '+reval');
     if (isError) {
       // Line has changed, so the `to` marker is obsolete.
@@ -66,64 +81,19 @@
     }
   }
 
-  function isEvaluationMarker(comment) {
-    return comment.type === 'Line' && comment.value[0] === ':';
-  }
-
-  function killWorker(eachMark) {
-    worker.terminate();
-    worker = null;
-
-    backlog.forEach(function(m) {
-      clearTimeout(m.timeout);
-      if (eachMark) eachMark(m);
-    });
-    backlog = [];
-  }
-
   function reval(editor) {
     // We kill the existing worker because we need a fresh
     // eval environment.
-    if (worker)
-      killWorker();
+    maybeKillWorker();
 
-    // Create new worker
-    worker = new Worker('eval.js');
-    worker.onmessage = function(event) {
-      console.log(event)
-      // var m = backlog[event.data.id];
-      // clearTimeout(m.timeout);
-      var m = event.data
-      write(m, event.data.value, event.data.isError);
-      // delete backlog[event.data.id];
-    };
-
-    // Eval each block up to the delimiter
     var text = editor.getValue();
-    // var lines = text.split('\n');
-    // var code = '';
 
-    var ast = esprima.parse(text, {loc: true, attachComment: true});
-    window.ast = ast;
-
-    // var markers_with_parents = [];
-
-    // estraverse.traverse(ast, {
-    //   enter: function(node, parent) {
-    //     if (node.trailingComments) {
-    //       var m = node.trailingComments.filter(isEvaluationMarker);
-    //       m.forEach(m => { m.parent = node });
-    //       Array.prototype.push.apply(markers_with_parents, m);
-    //     }
-    //   }});
-
-    // console.log(markers_with_parents)
-
-    console.log(ast)
-
+    // To keep track of all markers
     var all_markers = [];
 
-    // Collect
+    // Parse code to find evaluation markers
+    var ast = esprima.parse(text, {loc: true, attachComment: true});
+
     estraverse.replace(ast, {
       enter: function(node, parent) {
         if (node.type === 'ExpressionStatement') {
@@ -133,7 +103,7 @@
           var markers = [];
 
           estraverse.traverse(node, {
-            enter: function(node, parent) {
+            enter: function collectMarkers(node, parent) {
               if (node.trailingComments) {
                 var m = node.trailingComments.filter(isEvaluationMarker);
                 Array.prototype.push.apply(markers, m);
@@ -141,14 +111,18 @@
             }
           });
 
-          // If we have any, then wrap the expression
+          // If we have any marker
           if (markers.length > 0) {
-            // Prepare marker location for the argument to M
-            var markers_ast = markers.map(m => {
+            // We need to translate the markers line/column from Esprima to
+            // CodeMirror coordinates.  Then we save them and use their id
+            // number for talking with the worker.
+            var markers_ids = [];
+
+            markers.forEach(function saveMarkers(m) {
               var start = m.loc.start;
               var end = m.loc.end;
 
-              // Esprima counts line from 1, CodeMirror from 0
+              // Esprima counts lines from 1, CodeMirror from 0
               var cm_loc = {
                 from: {
                   line: start.line - 1,
@@ -165,23 +139,22 @@
               // marker, for visual feedback the evaluation started.
               all_markers.push(cm_loc);
 
-              return esprima
-                .parse(`({from: {line: ${cm_loc.from.line}, ch: ${cm_loc.from.ch}},
-                            to: {line: ${cm_loc.to.line}, ch: ${cm_loc.to.ch}} })`)
-                .body[0].expression
+              // Collect the id of this marker as an AST node
+              markers_ids.push({
+                type: 'Literal',
+                value: all_markers.length - 1
+              });
             });
 
-            // Wrap the expression in a call to M
+            // Wrap the expression in a call to the logging function
             return {
               type: 'ExpressionStatement',
               expression: {
                 type: 'CallExpression',
-                callee: { type: 'Identifier', name: 'M' },
+                callee: { type: 'Identifier', name: logging_function_name },
                 arguments: [
                   node.expression,
-                  { type: 'ArrayExpression',
-                    elements: markers_ast,
-                  }
+                  { type: 'ArrayExpression', elements: markers_ids }
                 ]
               }
             };
@@ -190,65 +163,27 @@
       }
     });
 
-    var code_with_M = escodegen.generate(ast);
+    // Create new worker
+    worker = new Worker('eval.js');
+    worker.onmessage = function onMessage(event) {
+      var d = event.data;
+      write(all_markers[d.id], d.result, d.isError);
+    };
 
-    console.debug(code_with_M);
-
-    // Need to define M
-    // var header = 'function M(value, results) {'
-    //       + '  results.forEach(r => { r.value =  value });'
-    //       + '};';
-
-
-    // var final_code = header + '\n' + code_with_M;
-
-    // eval(final_code)
-
-    // console.log()
-
+    // Send code to worker for evaluation
     worker.postMessage({
-      code: code_with_M,
+      code: escodegen.generate(ast),
+      loggingFunctionName: logging_function_name,
     });
 
-    // Erase all markers content for visual feedback that evaluation has
-    // started.
-    all_markers.forEach(function(m) {
-      write(m, '', '+reval');
-    });
+    // If it takes too long, kill it.
+    workerTimeout = setTimeout(maybeKillWorker, timeout);
 
-    return
-
-    lines.forEach(function(l, i) {
-      code += l + '\n';
-
-      var ev = l.indexOf(delimiter);
-      if (ev === -1) return;
-      // XXX: We should not evaluate delimiters in a comment, but that
-      // would require actually parsing the code.  As a temporary
-      // workaround, we skip lines beginning with '//' (but not
-      // '//:').
-      if (l.indexOf('//') === 0 && ev > 0) return;
-
-      var id = backlog.length;
-      backlog[id] = {
-        code: code,
-        from: {line: i, ch: ev + delimiter.length},
-        to: {line: i, ch: l.length},
-        timeout: setTimeout(function() {
-          killWorker(function(m) { write(m, ' ⌛'); });
-        }, timeout),
-      };
-
-      // Erase current marker value for visual feedback that evaluation has
-      // started.
-      write(backlog[id], '');
-
-      worker.postMessage({
-        id: id,
-        code: code,
-      });
-
-      code = '';
+    // Meanwhile, erase all markers content for visual feedback that evaluation
+    // has started.  (this is actually ok to do after postMessage because we
+    // won't process messages from the worker before we quit this function)
+    all_markers.forEach(function clearMarker(m) {
+      write(m, '');
     });
   }
 
