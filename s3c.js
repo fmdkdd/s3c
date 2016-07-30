@@ -66,20 +66,20 @@
     clearTimeout(workerTimeout);
   }
 
-  function write(marker, data, isError) {
+  function write(marker, data, className) {
     // +reval coalesces all writes made by this function into a single item in
     // CodeMirror's undo history.  So undo after an evaluation will revert /all/
     // markers, not just one marker at a time.
     editor.replaceRange(data, marker.from, marker.to, '+reval');
 
-    // Highlight errors in a different color
-    if (isError) {
+    // Sets class of marker if provided
+    if (className) {
       // We just changed the line, so the `to` marker is obsolete.
       var to = {
         line: marker.from.line,
         ch: marker.from.ch + data.length
       };
-      editor.markText(marker.from, to, {className: 's3c-runtime-error'});
+      editor.markText(marker.from, to, {className: className});
     }
   }
 
@@ -199,12 +199,9 @@
         // If there was an error, report it to the user
         if (d.isError) {
 
-          all_markers.filter(function hasReceivedLog(m) {
-            return !m.receivedLog
-          })
-            .forEach(function reportError(m) {
-              write(m, d.errorMsg, true);
-            })
+          writeToRemainingMarkers(function reportError(m) {
+            write(m, d.errorMsg, 's3c-runtime-error');
+          });
         }
       }
     };
@@ -216,8 +213,15 @@
     });
 
     // If it takes too long, kill it.
-    // TODO: report timeout to user
-    workerTimeout = setTimeout(maybeKillWorker, timeout);
+    workerTimeout = setTimeout(function onTimeout() {
+      // Kill it with fire!
+      maybeKillWorker();
+
+      writeToRemainingMarkers(function reportTimeout(m) {
+        write(m, '⌛ (timeout)', 's3c-timeout');
+      });
+
+    }, timeout);
 
     // Meanwhile, erase all markers content for visual feedback that evaluation
     // has started.  (this is actually ok to do after postMessage because we
@@ -225,6 +229,13 @@
     all_markers.forEach(function clearMarker(m) {
       write(m, '');
     });
+
+    function writeToRemainingMarkers(write_fn) {
+      all_markers.filter(function hasReceivedLog(m) {
+        return !m.receivedLog;
+      })
+        .forEach(write_fn);
+    }
   }
 
 }());
