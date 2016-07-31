@@ -115,12 +115,13 @@
 
   // The logging function that will capture expression values and send them
   // back.
-  function log(value, idArray) {
+  function log(value, idArray, isError) {
     idArray.forEach(function sendLogBack(id) {
       postMessage({
         type: 'log',
         id: id,
-        result: prettyStringForMarker(value)
+        result: prettyStringForMarker(value),
+        isError: isError,
       });
     })
   }

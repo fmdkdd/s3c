@@ -24,10 +24,15 @@
 
   document.addEventListener('DOMContentLoaded', init);
 
-  var delimiter = '//:';
+  var delimiter = '//:'; // or //!
 
   function isEvaluationComment(comment) {
-    return comment.type === 'Line' && comment.value[0] === ':';
+    return comment.type === 'Line'
+      && (comment.value[0] === ':' || comment.value[0] === '!');
+  }
+
+  function isErrorEvaluationComment(comment) {
+    return comment.type === 'Line' && comment.value[0] === '!';
   }
 
   // How long before canceling evaluation
@@ -210,6 +215,10 @@
 
           var comments_ids_nodes = [];
 
+          // If there is at least one error evaluation comment, we will wrap the
+          // call to the log function in a try/catch.
+          var wrap_in_trycatch = false;
+
           comments.forEach(function buildMarkerAndGetId(c) {
 
             if (!commentsToMarkers.has(c)) {
@@ -226,8 +235,12 @@
                 to: {
                   line: end.line - 1,
                   ch: end.column
-                }
+                },
+
+                isBang: isErrorEvaluationComment(c)
               };
+
+              wrap_in_trycatch = wrap_in_trycatch || marker.isBang;
 
               // Save that one to write to erase the value of the evaluation
               // marker, for visual feedback the evaluation started.
@@ -243,17 +256,23 @@
           });
 
           // Wrap the expression in a call to the logging function
-          return {
-            type: 'ExpressionStatement',
-            expression: {
-              type: 'CallExpression',
-              callee: { type: 'Identifier', name: logging_function_name },
-              arguments: [
-                node.expression,
-                { type: 'ArrayExpression', elements: comments_ids_nodes }
-              ]
-            }
-          };
+          var replacement = wrapNodeWithLogCall([
+            node.expression,
+            { type: 'ArrayExpression', elements: comments_ids_nodes }
+          ]);
+
+          // And wrap /that/ in a try/catch if needed
+          if (wrap_in_trycatch) {
+            replacement = wrapNodeWithTryCatch(
+              replacement,
+              wrapNodeWithLogCall([
+                { type: 'Identifier', name: 'e' },
+                { type: 'ArrayExpression', elements: comments_ids_nodes },
+                { type: 'Literal', value: true }
+              ]));
+          }
+
+          return replacement;
         }
       }
     });
@@ -265,13 +284,20 @@
 
       // When we get data for a marker
       if (d.type === 'log') {
+        var marker = all_markers[d.id];
 
-        // Write it
-        write(all_markers[d.id], d.result);
+        // A bang marker expects an error.  A normal marker does not expect an
+        // error.
+        var className;
+        if ((marker.isBang && !d.isError)
+            || (!marker.isBang && d.isError))
+          className = 's3c-runtime-error';
+
+        write(marker, d.result, className);
 
         // Mark that we did already receive a log for this marker.  If we
         // timeout or have an error, we won't erase this marker's content.
-        all_markers[d.id].receivedLog = true;
+        marker.receivedLog = true;
       }
 
       // When the evaluation is done
@@ -334,6 +360,38 @@
 
   function isExpressionStatement(node) {
     return node.type === 'ExpressionStatement';
+  }
+
+  function wrapNodeWithLogCall(arguments) {
+    return {
+      type: 'ExpressionStatement',
+      expression: {
+        type: 'CallExpression',
+        callee: { type: 'Identifier', name: logging_function_name },
+        arguments: arguments,
+      }
+    }
+  }
+
+  function wrapNodeWithTryCatch(try_node, catch_node) {
+    return {
+      type: 'TryStatement',
+      block: {
+        type: 'BlockStatement',
+        body: [ try_node ],
+      },
+      handler: {
+        type: 'CatchClause',
+        param: {
+          type: 'Identifier',
+          name: 'e'
+        },
+        body: {
+          type: 'BlockStatement',
+          body: [ catch_node ]
+        }
+      }
+    };
   }
 
 }());
