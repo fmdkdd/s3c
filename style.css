@@ -1,0 +1,54 @@
+.CodeMirror { border: 1px solid #eee; height: auto; line-height: normal; }
+.CodeMirror-lint-mark-error {
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9sJDw4cOCW1/KIAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAAHElEQVQI12NggIL/DAz/GdA5/xkY/qPKMDAwAADLZwf5rvm+LQAAAABJRU5ErkJggg==");
+}
+
+.CodeMirror-lint-mark-style {
+  background-position: left bottom;
+  background-repeat: repeat-x;
+}
+
+.CodeMirror-lint-mark-style {
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4AcfER8yeKO8ogAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAAANklEQVQI12NkgAK9DV8WMjAwdDPqbfgSysDA4MPAwNDNwMCwiImBgaGSgYGh+1IAzxUGBoYUAPEkCg3hrXiCAAAAAElFTkSuQmCC');
+}
+
+.CodeMirror-lint-marker-style {
+  background-position: center center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  display: inline-block;
+  height: 16px;
+  width: 16px;
+  vertical-align: middle;
+  position: relative;
+}
+
+.CodeMirror-lint-message-style {
+  padding-left: 18px;
+  background-position: top left;
+  background-repeat: no-repeat;
+}
+
+.CodeMirror-lint-marker-style, .CodeMirror-lint-message-style {
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4AcfER8kjHcJ8wAAANhJREFUOMvNkz0OgkAUhN+AMSFACDYWXkDvsvESttbEDlvus3fRK9hIiBASQMdCC9Dlp2Sbzb7MvHxvdldk1guaB2gSmodezYDZYZHd4AY+i+wBN1hTofzVWQMAR7iBLyLy3Y+TCaAZMk/v8EKhgkBTmKcCL1xRIZ1CEMELu00/52h0BGhuWJUnU1dW5QmamzGCGEvHHOynHvdmAM0tX88LLLs3Wb6eAsveUeH6R8CmTn7NVN2cYdnCpk7MI9iL/aQX1tJ1GgAwXel/raWDwXAeA6DCeT4f7g3oo0iKtxG/4QAAAABJRU5ErkJggg==')
+}
+
+.cm-s-default .s3c-runtime-error {
+  color: white;
+  background-color: red;
+}
+
+#button-run {
+  background-color: #2ecc71;
+  color: white;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.15);
+  font-size: 140%;
+  border: 1px solid #27ae60;
+  border-radius: 4px;
+  padding: 0.25em 0.5em;
+  cursor: pointer;
+}
+
+#button-run:hover {
+  background-color: #27ae60;
+}
