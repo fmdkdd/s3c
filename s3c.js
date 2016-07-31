@@ -1,15 +1,6 @@
 /* eslint-env browser */
 /* global CodeMirror */
 
-// TODO: update ESLint to fix obsolete parser issues and hopefully weight less
-// than 671K.
-
-// TODO: Add LICENSE files for esprima/escodegen/estraverse
-
-// TODO: categorize ESLint rules in (true errors, probable errors, style) if we
-// can.  Signaling an error when the code actually runs defeats the purpose.
-// And style rules can be useful, but are orthogonal.
-
 // TODO: check if updating other dependencies breaks anything while I'm at it
 
 // TODO: use //+ to collect multiple results to the same marker? (and just
