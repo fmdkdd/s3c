@@ -38,6 +38,11 @@
   var worker;
   var workerTimeout;
 
+  function resizeEditor() {
+    document.querySelector('.CodeMirror').style.height
+      = (window.innerHeight - 110) + 'px';
+  }
+
   function init() {
     editor = CodeMirror(document.getElementById('editor'), {
       autofocus: true,
@@ -54,6 +59,9 @@
         Tab: "insertSoftTab", // spaces instead of \t
       },
     });
+
+    window.addEventListener('resize', resizeEditor);
+    resizeEditor();
 
     // Restore from localStorage.
     // TODO: local storage may be too limited.  Maybe use DB instead?
