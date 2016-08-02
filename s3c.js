@@ -115,17 +115,11 @@
 
     var text = editor.getValue();
 
-    // Parse code to find evaluation markers.  Parsing will fail if there is a
-    // syntax error.  If there is an error, we catch it, skip evaluation and
-    // disable evaluation.
-    var ast;
+    // Parse code to find evaluation markers.  If there is a syntax error this
+    // is null.  No point to go further.
+    var ast = getAST();
 
-    try {
-      ast = esprima.parse(text, {loc: true, attachComment: true});
-    } catch (err) {
-      // TODO: handle parse errors
-      console.log(err)
-    }
+    if (!ast) return;
 
     // We first have to associate all evaluation comments with their nearest
     // expression statement.
@@ -287,6 +281,10 @@
       if (d.type === 'log') {
         var marker = all_markers[d.id];
 
+        // XXX: No corresponding marker, this happens when reusing the AST from
+        // ESLint, but not when parsing with Esprima directly.
+        if (!marker) return
+
         // A bang marker expects an error.  A normal marker does not expect an
         // error.
         var className;
@@ -347,6 +345,28 @@
       })
         .forEach(write_fn);
     }
+  }
+
+  function getAST() {
+    // Try to get the AST from ESLint first
+    var source = eslint.getSourceCode();
+
+    // If there is a syntax error, getSourceCode() is null.  No AST for you!
+    if (!source) return null;
+
+    var ast = source.ast;
+
+    // If for some reason this is null, then parse with Esprima
+    // XXX: is this needed?  maybe if ESLint is disabled?
+    if (!ast) {
+      try {
+        ast = esprima.parse(text, {loc: true, attachComment: true});
+      } catch (err) {
+        return null
+      }
+    }
+
+    return ast;
   }
 
   // Return first value in the array that matches the predicate, or undefined.
