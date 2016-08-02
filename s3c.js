@@ -91,20 +91,39 @@
     clearTimeout(workerTimeout);
   }
 
-  function write(marker, data, className) {
-    // +reval coalesces all writes made by this function into a single item in
-    // CodeMirror's undo history.  So undo after an evaluation will revert /all/
-    // markers, not just one marker at a time.
-    editor.replaceRange(data, marker.from, marker.to, '+reval');
+  var debounce;
+  var writeQueue = [];
 
-    // Sets class of marker if provided
-    if (className) {
-      // We just changed the line, so the `to` marker is obsolete.
-      var to = {
-        line: marker.from.line,
-        ch: marker.from.ch + data.length
-      };
-      editor.markText(marker.from, to, {className: className});
+  function write(marker, data, className) {
+    writeQueue.push([marker, data, className]);
+    clearTimeout(debounce);
+    debounce = setTimeout(function() {
+      editor.operation(writeInBatch);
+    }, 50);
+  }
+
+  function writeInBatch() {
+    while(writeQueue.length > 0) {
+      var m = writeQueue.shift();
+
+      var marker = m[0];
+      var data = m[1];
+      var className = m[2];
+
+      // +reval coalesces all writes made by this function into a single item in
+      // CodeMirror's undo history.  So undo after an evaluation will revert /all/
+      // markers, not just one marker at a time.
+      editor.replaceRange(data, marker.from, marker.to, '+reval');
+
+      // Sets class of marker if provided
+      if (className) {
+        // We just changed the line, so the `to` marker is obsolete.
+        var to = {
+          line: marker.from.line,
+          ch: marker.from.ch + data.length
+        };
+        editor.markText(marker.from, to, {className: className});
+      }
     }
   }
 
