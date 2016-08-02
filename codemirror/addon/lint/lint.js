@@ -179,7 +179,8 @@
     if (options.onUpdateLinting) options.onUpdateLinting(annotationsNotSorted, annotations, cm);
   }
 
-  function onChange(cm) {
+  function onChange(cm, change) {
+    if (change.origin === '+reval') return;
     var state = cm.state.lint;
     if (!state) return;
     clearTimeout(state.timeout);
