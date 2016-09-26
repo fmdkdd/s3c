@@ -19,6 +19,28 @@
 
   var delimiter = '//:'; // or //!
 
+  var sampleText = "// Create some variable...\n\
+\n\
+var a = 1 + 2\n\
+\n\
+// And inspect its value using the '//:' marker\n\
+\n\
+a //:\n\
+\n\
+// Press Run, or Ctrl+Enter to evaluate all markers\n\
+\n\
+// It even works inside functions:\n\
+\n\
+function f(x, y) {\n\
+  var d = Math.sqrt(x * x + y * y)\n\
+  d //:\n\
+  return Math.floor(d)\n\
+}\n\
+\n\
+f(1, 1) //:\n\
+\n\
+// You can change the parameters inside `f` and run again to see the changes";
+
   function isEvaluationComment(comment) {
     return comment.type === 'Line'
       && (comment.value[0] === ':' || comment.value[0] === '!');
@@ -67,6 +89,8 @@
     // TODO: local storage may be too limited.  Maybe use DB instead?
     var text = localStorage.getItem('backup');
     if (text) editor.setValue(text);
+    // new users see the sample text
+    else editor.setValue(sampleText);
 
     // Backup text when leaving page.
     window.addEventListener('beforeunload', function backupToLocalStorage() {
