@@ -1,7 +1,7 @@
 # s3c
 
 A JavaScript editor with code evaluation.  Built for beginner JS
-students, useful for all.  [Try it](http://www.0xc0de.fr/s3c).
+students, useful for all.  [Try it](http://0xc0de.fr/s3c).
 
 ## Features
 
