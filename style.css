@@ -32,13 +32,12 @@
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4AcfER8kjHcJ8wAAANhJREFUOMvNkz0OgkAUhN+AMSFACDYWXkDvsvESttbEDlvus3fRK9hIiBASQMdCC9Dlp2Sbzb7MvHxvdldk1guaB2gSmodezYDZYZHd4AY+i+wBN1hTofzVWQMAR7iBLyLy3Y+TCaAZMk/v8EKhgkBTmKcCL1xRIZ1CEMELu00/52h0BGhuWJUnU1dW5QmamzGCGEvHHOynHvdmAM0tX88LLLs3Wb6eAsveUeH6R8CmTn7NVN2cYdnCpk7MI9iL/aQX1tJ1GgAwXel/raWDwXAeA6DCeT4f7g3oo0iKtxG/4QAAAABJRU5ErkJggg==')
 }
 
-.cm-comment.s3c-runtime-error {
-  color: white;
-  background-color: red;
+.cm-s3c-delimiter {
+  background-color: #fec;
 }
 
-.cm-s3c-delimiter {
-  color: #c30;
+.s3c-runtime-error {
+  background-color: #fbb;
 }
 
 #button-run {
