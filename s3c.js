@@ -109,6 +109,25 @@ f(1, 1) //:\n\
     window.addEventListener('resize', resizeEditor);
     resizeEditor();
 
+    // Add an overlay for syntax highlighting the delimiters differently (and
+    // their results) from standard comments.  This corresponds to the
+    // 'cm-s3c-delimiter' CSS rule.
+    var query = /\/\/[:+!].*$/g;
+    editor.addOverlay({
+      token: function(stream) {
+        query.lastIndex = stream.pos;
+        var match = query.exec(stream.string);
+        if (match && match.index == stream.pos) {
+          stream.pos += match[0].length || 1;
+          return "s3c-delimiter";
+        } else if (match) {
+          stream.pos = match.index;
+        } else {
+          stream.skipToEnd();
+        }
+      }
+    }, {opaque: true});
+
     // Restore from localStorage.
     // TODO: local storage may be too limited.  Maybe use DB instead?
     var text = localStorage.getItem('backup');
