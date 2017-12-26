@@ -51,3 +51,7 @@
 #button-run:hover {
   background-color: #27ae60;
 }
+
+label[for="timeout"] {
+  margin-left: 2em;
+}

@@ -10,8 +10,6 @@
 
 // TODO: disable run button if there is a parse error?
 
-// TODO: Allow customizing timeout
-
 (function(){
 
   document.addEventListener('DOMContentLoaded', init);
@@ -124,6 +122,14 @@ f(1, 1) //:\n\
 
     runButton = document.getElementById('button-run')
     runButton.addEventListener('click', doReval);
+
+    timeoutInput = document.getElementById('timeout')
+    timeoutInput.addEventListener('change', function changeTimeout() {
+      timeout = this.value;
+    });
+    // Use the value in the form if it's already present.  It *should* be a
+    // valid number already.  But it can be empty.
+    timeout = timeoutInput.value || timeout;
 
     function doReval() {
       reval(editor);
