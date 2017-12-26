@@ -3,15 +3,14 @@
 
 // TODO: check if updating other dependencies breaks anything while I'm at it
 
-// TODO: use //+ to collect multiple results to the same marker? (and just
-// separate results by spaces)
-
 // TODO: add usage examples on the bottom of the page
 
 // TODO: if there can only be one error or timeout, just put it next to the Run
 // button in a 'evaluation result' space
 
 // TODO: disable run button if there is a parse error?
+
+// TODO: Allow customizing timeout
 
 (function(){
 
@@ -27,6 +26,15 @@
   //   will show up in later delimiters.  When a failure is expected, one can
   //   use this delimiter to signal it (but it's just syntactic sugar for
   //   try/catch).
+  //
+  // - `//+` displays the value of nearest expression, but will keep
+  //   accumulating results in a single evaluation.  This is useful in loops.
+  //   The `//:` delimiter only displays the last value, so in loops it will
+  //   only show the value for the last iteration.  The `//+` delimiter will
+  //   instead show the values for each iteration.
+  var SEMI = {};
+  var BANG = {};
+  var PLUS = {};
   var delimiter_length = 3;
 
   var sampleText = "// Create some variable...\n\
@@ -53,11 +61,18 @@ f(1, 1) //:\n\
 
   function isEvaluationComment(comment) {
     return comment.type === 'Line'
-      && (comment.value[0] === ':' || comment.value[0] === '!');
+      && (comment.value[0] === ':'
+          || comment.value[0] === '!'
+          || comment.value[0] === '+');
   }
 
-  function isErrorEvaluationComment(comment) {
-    return comment.type === 'Line' && comment.value[0] === '!';
+  function evaluationCommentType(comment) {
+    switch (comment.value[0]) {
+    case ':': return SEMI;
+    case '!': return BANG;
+    case '+': return PLUS;
+    default: return SEMI;
+    }
   }
 
   // How long before canceling evaluation
@@ -125,22 +140,30 @@ f(1, 1) //:\n\
     clearTimeout(workerTimeout);
   }
 
-  function write(marker, data, className) {
-    // CodeMirror takes `null` as the character to mean "until the end of the
-    // line".
-    var to = {
-      line: marker.from.line,
-      ch: null
-    };
+  function erase(marker) {
+    // Erase from the end of the delimiter to the end of the line, regardless
+    // of the delimiter type.
+    editor.replaceRange('', marker.from, {line: marker.from.line}, '+reval');
+  }
 
+  function write(marker, data, className) {
+    // If it's a //+ delimiter, we want to append to the end of the line.
+    // That's done by not passing any `to`, and inserting from the end (with
+    // `ch` null).
+    //
     // +reval coalesces all writes made by this function into a single item in
     // CodeMirror's undo history.  So undo after an evaluation will revert /all/
     // markers, not just one marker at a time.
-    editor.replaceRange(data, marker.from, to, '+reval');
+    if (marker.type === PLUS) {
+      editor.replaceRange(data, {line: marker.from.line}, undefined, '+reval');
+    } else {
+      editor.replaceRange(data, marker.from, {line: marker.from.line}, '+reval');
+    }
 
-    // Sets class of marker if provided
+    // Sets class of marker if provided.  This time we want to mark the whole
+    // line unconditionally.
     if (className) {
-      editor.markText(marker.from, to, {className: className});
+      editor.markText(marker.from, {line: marker.from.line}, {className: className});
     }
   }
 
@@ -266,14 +289,14 @@ f(1, 1) //:\n\
               var marker = {
                 from: {
                   line: start.line - 1,
-                  // Skip evaluation marker syntax
+                  // Skip the delimiter syntax
                   ch: start.column + delimiter_length
                 },
 
-                isBang: isErrorEvaluationComment(c)
+                type: evaluationCommentType(c)
               };
 
-              wrap_in_trycatch = wrap_in_trycatch || marker.isBang;
+              wrap_in_trycatch = wrap_in_trycatch || marker.type === BANG;
 
               // Save that one to erase the value of the evaluation marker, for
               // visual feedback that the evaluation started.
@@ -322,9 +345,10 @@ f(1, 1) //:\n\
         // A bang marker expects an error.  A normal marker does not expect an
         // error.
         var className;
-        if ((marker.isBang && !d.isError)
-            || (!marker.isBang && d.isError))
+        var isError = marker.type === BANG ? !d.isError : d.isError;
+        if (isError) {
           className = 's3c-runtime-error';
+        }
 
         write(marker, d.result, className);
 
@@ -370,7 +394,7 @@ f(1, 1) //:\n\
     // has started.  (this is actually ok to do after postMessage because we
     // won't process messages from the worker before we quit this function)
     all_markers.forEach(function clearMarker(m) {
-      write(m, '');
+      erase(m);
     });
 
     function writeToRemainingMarkers(write_fn) {
