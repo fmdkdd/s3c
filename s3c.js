@@ -17,7 +17,17 @@
 
   document.addEventListener('DOMContentLoaded', init);
 
-  var delimiter = '//:'; // or //!
+  // Delimiters can be
+  //
+  // - `//:` displays the value of the nearest (preceding or parent) expression.
+  //   If that value is an error, its results will be displayed in red.
+  //
+  // - `//!` wraps the nearest expression in a try/catch and displays its value.
+  //   This is useful because earlier evaluation results that throw exceptions
+  //   will show up in later delimiters.  When a failure is expected, one can
+  //   use this delimiter to signal it (but it's just syntactic sugar for
+  //   try/catch).
+  var delimiter_length = 3;
 
   var sampleText = "// Create some variable...\n\
 \n\
@@ -116,18 +126,20 @@ f(1, 1) //:\n\
   }
 
   function write(marker, data, className) {
+    // CodeMirror takes `null` as the character to mean "until the end of the
+    // line".
+    var to = {
+      line: marker.from.line,
+      ch: null
+    };
+
     // +reval coalesces all writes made by this function into a single item in
     // CodeMirror's undo history.  So undo after an evaluation will revert /all/
     // markers, not just one marker at a time.
-    editor.replaceRange(data, marker.from, marker.to, '+reval');
+    editor.replaceRange(data, marker.from, to, '+reval');
 
     // Sets class of marker if provided
     if (className) {
-      // We just changed the line, so the `to` marker is obsolete.
-      var to = {
-        line: marker.from.line,
-        ch: marker.from.ch + data.length
-      };
       editor.markText(marker.from, to, {className: className});
     }
   }
@@ -255,11 +267,7 @@ f(1, 1) //:\n\
                 from: {
                   line: start.line - 1,
                   // Skip evaluation marker syntax
-                  ch: start.column + delimiter.length
-                },
-                to: {
-                  line: end.line - 1,
-                  ch: end.column
+                  ch: start.column + delimiter_length
                 },
 
                 isBang: isErrorEvaluationComment(c)
@@ -267,8 +275,8 @@ f(1, 1) //:\n\
 
               wrap_in_trycatch = wrap_in_trycatch || marker.isBang;
 
-              // Save that one to write to erase the value of the evaluation
-              // marker, for visual feedback the evaluation started.
+              // Save that one to erase the value of the evaluation marker, for
+              // visual feedback that the evaluation started.
               commentsToMarkers.set(c, marker);
               all_markers.push(marker);
             }
