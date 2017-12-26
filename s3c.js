@@ -82,6 +82,7 @@ f(1, 1) //:\n\
   var runButton;
   var worker;
   var workerTimeout;
+  var refreshTimerTimeout;
 
   function resizeEditor() {
     document.querySelector('.CodeMirror').style.height
@@ -130,6 +131,8 @@ f(1, 1) //:\n\
     // Use the value in the form if it's already present.  It *should* be a
     // valid number already.  But it can be empty.
     timeout = timeoutInput.value || timeout;
+    // Make sure the value we use is visible.
+    timeoutInput.value = timeout;
 
     function doReval() {
       reval(editor);
@@ -142,8 +145,13 @@ f(1, 1) //:\n\
       worker = null;
     }
 
-    // We don't need this timeout anymore
+    // We don't need these timeouts anymore
     clearTimeout(workerTimeout);
+    clearTimeout(refreshTimerTimeout);
+
+    // Restore the 'Run' button
+    runButton.innerText = 'Run';
+    runButton.classList.remove('in-progress');
   }
 
   function erase(marker) {
@@ -395,6 +403,18 @@ f(1, 1) //:\n\
       });
 
     }, timeout);
+
+    // Refresh the time since the task has been running, for visual feedback of
+    // progress.
+    var startTime = Date.now();
+    refreshTimerTimeout = setInterval(function refreshTimer() {
+      var elapsed = Date.now() - startTime;
+      var remaining = Math.round((timeout - elapsed) / 1000);
+      runButton.innerText = 'Running (' + remaining + 's)';
+    }, 1000);
+    // Immediate feedback that it has started
+    runButton.innerText = 'Running';
+    runButton.classList.add('in-progress');
 
     // Meanwhile, erase all markers content for visual feedback that evaluation
     // has started.  (this is actually ok to do after postMessage because we

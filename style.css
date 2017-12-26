@@ -52,6 +52,11 @@
   background-color: #27ae60;
 }
 
+#button-run.in-progress {
+  background-color: #f39c12;
+  border: 1px solid #f39c12;
+}
+
 label[for="timeout"] {
   margin-left: 2em;
 }
