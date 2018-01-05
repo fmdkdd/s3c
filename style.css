@@ -36,8 +36,18 @@
   background-color: #fec;
 }
 
+.cm-comment + .cm-s3c-delimiter {
+  color: #a50;
+  background-color: inherit;
+}
+
 .s3c-runtime-error {
   background-color: #fbb;
+}
+
+.cm-comment + .cm-s3c-delimiter + .s3c-runtime-error {
+  color: #a50;
+  background-color: inherit;
 }
 
 #button-run {
