@@ -30,18 +30,22 @@
 
   // Make a presentable string out of a JavaScript value.
   function prettyValue(v) {
-    if (v == null)
+    if (v == null) {
       return v;
+    }
 
-    else if (typeof v === 'function')
+    else if (typeof v === 'function') {
       return 'function' + (v.name ? ' ' + v.name : '');
+    }
 
     else if (typeof v === 'string'
-             || typeof v === 'object' && v instanceof String)
+             || typeof v === 'object' && v instanceof String) {
       return '"' + v + '"';
+    }
 
-    else if (isArray(v))
+    else if (isArray(v)) {
       return '[' + join(map(v, prettyValue), ',') + ']';
+    }
 
     else if (v instanceof Map) {
       return 'Map {' + join(map([...mapKeys(v)], function(k) {
@@ -53,9 +57,13 @@
       return 'Set {' + join(map([...setKeys(v)], prettyValue), ',') + '}';
     }
 
+    else if (typeof v === 'object') {
       return prettyObject(v);
+    }
 
-    return v;
+    else {
+      return v;
+    }
 
     function prettyObject(o) {
       if (o instanceof Error ||
@@ -75,8 +83,9 @@
       // We extract the strings after 'object' and drop the brackets.
       var className = slice(objectToString(o), 8, -1);
 
-      if (cyclic)
+      if (cyclic) {
         return className + ' {cyclic}';
+      }
 
       var ks = keys(o);
 
