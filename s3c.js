@@ -78,6 +78,7 @@ f(1, 1) //:\n\
   var worker;
   var workerTimeout;
   var refreshTimerTimeout;
+  var errorMarkers = [];
 
   function resizeEditor() {
     document.querySelector('.CodeMirror').style.height
@@ -189,9 +190,12 @@ f(1, 1) //:\n\
     }
 
     // Sets class of marker if provided.  This time we want to mark the whole
-    // line unconditionally.
+    // line unconditionally, including the evaluation marker.
     if (className) {
-      editor.markText(marker.from, {line: marker.from.line}, {className: className});
+      errorMarkers.push(
+        editor.markText({line: marker.from.line,
+                         ch: marker.from.ch - delimiter_length},
+                        {line: marker.from.line}, {className: className}));
     }
   }
 
@@ -440,6 +444,10 @@ f(1, 1) //:\n\
     // won't process messages from the worker before we quit this function)
     all_markers.forEach(function clearMarker(m) {
       erase(m);
+    });
+    // Also clear up any error marker from the previous evaluation.
+    errorMarkers.forEach(function clearErrorMarker(m) {
+      m.clear();
     });
 
     function writeToRemainingMarkers(write_fn) {
