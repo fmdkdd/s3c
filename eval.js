@@ -56,7 +56,10 @@
         catch (e) { return true; }
       }());
 
-      var className = slice(split(objectToString(o), ' ')[1], 0, -1);
+      // Object.toString returns a string of the form:
+      //   '[object ClassName OptionalSomething]'
+      // We extract the strings after 'object' and drop the brackets.
+      var className = slice(objectToString(o), 8, -1);
 
       if (cyclic)
         return className + ' {cyclic}';
