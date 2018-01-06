@@ -10,6 +10,8 @@
   var Number = this.Number;
   var Boolean = this.Boolean;
   var RegExp = this.RegExp;
+  var Map = this.Map;
+  var Set = this.Set;
   var m2f = Function.prototype.bind.bind(Function.prototype.call);
   var _eval = eval;
   var isArray = Array.isArray;
@@ -21,6 +23,9 @@
   var split = m2f(String.prototype.split);
   var slice = m2f(String.prototype.slice);
   var objectToString = m2f(Object.prototype.toString);
+  var mapKeys = m2f(Map.prototype.keys);
+  var mapGet = m2f(Map.prototype.get);
+  var setKeys = m2f(Set.prototype.keys);
   var postMessage = this.postMessage;
 
   // Make a presentable string out of a JavaScript value.
@@ -38,7 +43,16 @@
     else if (isArray(v))
       return '[' + join(map(v, prettyValue), ',') + ']';
 
-    else if (typeof v === 'object')
+    else if (v instanceof Map) {
+      return 'Map {' + join(map([...mapKeys(v)], function(k) {
+        return prettyValue(k) + ' => ' + prettyValue(mapGet(v, k));
+      }), ',') + '}';
+    }
+
+    else if (v instanceof Set) {
+      return 'Set {' + join(map([...setKeys(v)], prettyValue), ',') + '}';
+    }
+
       return prettyObject(v);
 
     return v;
