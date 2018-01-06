@@ -5,11 +5,6 @@
 
 // TODO: add usage examples on the bottom of the page
 
-// TODO: if there can only be one error or timeout, just put it next to the Run
-// button in a 'evaluation result' space
-
-// TODO: disable run button if there is a parse error?
-
 (function(){
 
   document.addEventListener('DOMContentLoaded', init);
@@ -214,9 +209,14 @@ f(1, 1) //:\n\
 
     try {
       ast = esprima.parse(text, {loc: true, attachComment: true});
+      runButton.disabled = false;
+      runButton.classList.remove('parse-error');
     } catch (err) {
-      // TODO: handle parse errors
-      console.log(err)
+      // If there is a parse error, abort and disable the Run button
+      runButton.disabled = true;
+      runButton.classList.add('parse-error');
+      runButton.innerText = 'Parse error';
+      return;
     }
 
     // We first have to associate all evaluation comments with their nearest

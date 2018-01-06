@@ -70,6 +70,12 @@
   border: 1px solid #f39c12;
 }
 
+#button-run.parse-error {
+  background-color: #c0392b;
+  border: 1px solid #c0392b;
+  cursor: default;
+}
+
 label[for="timeout"] {
   margin-left: 2em;
 }
