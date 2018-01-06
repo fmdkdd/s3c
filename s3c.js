@@ -10,8 +10,6 @@
 
 // TODO: disable run button if there is a parse error?
 
-// TODO: pretty-print Map and Set like the console does (also Symbols)
-
 (function(){
 
   document.addEventListener('DOMContentLoaded', init);

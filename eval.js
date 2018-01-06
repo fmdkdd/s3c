@@ -43,6 +43,10 @@
       return '"' + v + '"';
     }
 
+    else if (typeof v === 'symbol') {
+      return String(v);
+    }
+
     else if (isArray(v)) {
       return '[' + join(map(v, prettyValue), ',') + ']';
     }
