@@ -200,11 +200,14 @@ f(1, 1) //:\n\
   }
 
   function reval(editor) {
+    // First thing: save the editor content to avoid losing any work when
+    // evaluating.
+    var text = editor.getValue();
+    localStorage.setItem('backup', text);
+
     // We kill the existing worker because we need a fresh
     // eval environment.
     maybeKillWorker();
-
-    var text = editor.getValue();
 
     // Parse code to find evaluation markers.  Parsing will fail if there is a
     // syntax error.  If there is an error, we catch it, skip evaluation and
