@@ -5,6 +5,8 @@
 
 // TODO: add usage examples on the bottom of the page
 
+// TODO: can we use the debugger to debug the code evaluated by s3c?
+
 (function(){
 
   document.addEventListener('DOMContentLoaded', init);
@@ -136,6 +138,9 @@ f(1, 1) //:\n\
       localStorage.setItem('backup', editor.getValue());
     });
 
+    // Backup text when user is idle.
+    editor.on('changes', debounce(maybeSave, 5000));
+
     runButton = document.getElementById('button-run')
     runButton.addEventListener('click', doReval);
 
@@ -151,6 +156,14 @@ f(1, 1) //:\n\
 
     function doReval() {
       reval(editor);
+    }
+  }
+
+  function maybeSave() {
+    // Save editor contents if it hasn't changed since last time we saved.
+    if (!editor.isClean()) {
+      localStorage.setItem('backup', editor.getValue());
+      editor.markClean();
     }
   }
 
@@ -202,12 +215,13 @@ f(1, 1) //:\n\
   function reval(editor) {
     // First thing: save the editor content to avoid losing any work when
     // evaluating.
-    var text = editor.getValue();
-    localStorage.setItem('backup', text);
+    maybeSave();
 
     // We kill the existing worker because we need a fresh
     // eval environment.
     maybeKillWorker();
+
+    var text = editor.getValue();
 
     // Parse code to find evaluation markers.  Parsing will fail if there is a
     // syntax error.  If there is an error, we catch it, skip evaluation and
@@ -504,6 +518,14 @@ f(1, 1) //:\n\
           body: [ catch_node ]
         }
       }
+    };
+  }
+
+  function debounce(func, wait) {
+    var timeout;
+    return function() {
+      clearTimeout(timeout);
+      timeout = setTimeout(func, wait);
     };
   }
 
