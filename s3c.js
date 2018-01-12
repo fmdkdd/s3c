@@ -47,10 +47,14 @@ a //:\n\
 function f(x, y) {\n\
   var d = Math.sqrt(x * x + y * y)\n\
   d //:\n\
+  // The '//+' marker shows all values at this location,\n\
+  // even among multiple calls:\n\
+  d //+\n\
   return Math.floor(d)\n\
 }\n\
 \n\
 f(1, 1) //:\n\
+f(2, 2) //:\n\
 \n\
 // You can change the parameters inside `f` and run again to see the changes";
 
