@@ -417,9 +417,8 @@ f(2, 2) //:\n\
 
       // When the evaluation is done
       else if (d.type === 'evaluation_done') {
-
-        // We don't need the worker anymore
-        maybeKillWorker();
+        // Don't kill the worker yet, as we don't know if the event loop is
+        // actually empty.
 
         // If there was an error, report it to the user
         if (d.isError) {
