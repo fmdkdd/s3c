@@ -422,9 +422,9 @@ f(2, 2) //:\n\
 
         // If there was an error, report it to the user
         if (d.isError) {
-
           writeToRemainingMarkers(function reportError(m) {
             write(m, d.errorMsg, 's3c-runtime-error');
+            m.receivedLog = true;
           });
         }
       }
@@ -443,6 +443,7 @@ f(2, 2) //:\n\
 
       writeToRemainingMarkers(function reportTimeout(m) {
         write(m, '⌛ (timeout)', 's3c-timeout');
+        m.receivedLog = true;
       });
 
     }, timeout);
