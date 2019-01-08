@@ -154,6 +154,8 @@
         isError: isError,
       });
     })
+
+    return value;
   }
 
   this.addEventListener('message', function onMessage(event) {

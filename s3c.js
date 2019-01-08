@@ -253,24 +253,36 @@ f(2, 2) //:\n\
     var root_trail = [];
 
     estraverse.traverse(ast, {
-      enter: function(node, parent) {
+      enter: function(node) {
         root_trail.unshift(node);
 
         if (node.trailingComments) {
           var coms = node.trailingComments.filter(isEvaluationComment);
 
-          // If any of these are evaluation comments
+          // If any of these are evaluation comments, determine to which
+          // expression the comment should bind.
           if (coms.length > 0) {
 
-            // Find the first expression statement
-            var exp = first(root_trail, isExpressionStatement);
+            var exp;
+
+            // If we are looking at a return, we want the comment to bind to the
+            // return argument.
+            if (node.type === 'ReturnStatement') {
+              exp = node
+            }
+
+            // Otherwise, we try to find the first expression statement in the
+            // parent nodes.
+            if (!exp) {
+              exp = first(root_trail, isExpressionStatement);
+            }
 
             // If there is no parent expression statement, we have a block with
-            // a trailing comment.  We go traverse it and bind to the last
+            // a trailing comment.  We traverse the block and bind to the last
             // ExpressionStatement we find.  This is the legacy behavior of s3c.
             if (!exp) {
               estraverse.traverse(node, {
-                enter: function(node, parent) {
+                enter: function(node) {
                   if (isExpressionStatement(node)) {
                     exp = node;
                   }
@@ -304,7 +316,7 @@ f(2, 2) //:\n\
         }
       },
 
-      leave: function(node, parent) {
+      leave: function(node) {
         root_trail.shift();
       }
     });
@@ -321,7 +333,7 @@ f(2, 2) //:\n\
     var all_markers = [];
 
     estraverse.replace(ast, {
-      enter: function(node, parent) {
+      enter: function(node) {
         if (expressionsToComments.has(node)) {
           var comments = expressionsToComments.get(node);
 
@@ -370,20 +382,18 @@ f(2, 2) //:\n\
           });
 
           // Wrap the expression in a call to the logging function
-          var replacement = wrapNodeWithLogCall([
-            node.expression,
-            { type: 'ArrayExpression', elements: comments_ids_nodes }
-          ]);
+          var replacement = wrapNodeWithLogCall(node, comments_ids_nodes);
 
           // And wrap /that/ in a try/catch if needed
           if (wrap_in_trycatch) {
             replacement = wrapNodeWithTryCatch(
               replacement,
-              wrapNodeWithLogCall([
-                { type: 'Identifier', name: 'e' },
-                { type: 'ArrayExpression', elements: comments_ids_nodes },
-                { type: 'Literal', value: true }
-              ]));
+              wrapNodeWithLogCall(
+                { type: 'ExpressionStatement',
+                  expression: {type: 'Identifier', name: 'e'}},
+                comments_ids_nodes,
+                true
+              ));
           }
 
           return replacement;
@@ -493,13 +503,29 @@ f(2, 2) //:\n\
     return node.type === 'ExpressionStatement';
   }
 
-  function wrapNodeWithLogCall(arguments) {
-    return {
-      type: 'ExpressionStatement',
-      expression: {
-        type: 'CallExpression',
-        callee: { type: 'Identifier', name: logging_function_name },
-        arguments: arguments,
+  function wrapNodeWithLogCall(node, idArray, isError) {
+    if (node.type === 'ReturnStatement') {
+      return {
+        type: 'ReturnStatement',
+        argument: {
+          type: 'CallExpression',
+          callee: { type: 'Identifier', name: logging_function_name },
+          arguments: [node.argument,
+                      {type: 'ArrayExpression', elements: idArray},
+                      {type: 'Literal', value: !!isError}]
+        }
+      }
+    }
+    else {
+      return {
+        type: 'ExpressionStatement',
+        expression: {
+          type: 'CallExpression',
+          callee: { type: 'Identifier', name: logging_function_name },
+          arguments: [node.expression,
+                      {type: 'ArrayExpression', elements: idArray},
+                      {type: 'Literal', value: !!isError}]
+        }
       }
     }
   }
